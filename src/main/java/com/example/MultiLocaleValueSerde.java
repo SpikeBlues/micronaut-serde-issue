@@ -9,6 +9,7 @@ import io.micronaut.serde.exceptions.SerdeException;
 import jakarta.inject.Singleton;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.MapUtils;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -23,7 +24,7 @@ public class MultiLocaleValueSerde<T extends Serializable> implements Serde<Mult
     /**
      * default fallback locale
      */
-    private final Locale defaultFallback = Locale.ENGLISH;;
+    private final Locale defaultFallback;
 
     /**
      * value argument
@@ -34,6 +35,12 @@ public class MultiLocaleValueSerde<T extends Serializable> implements Serde<Mult
      * value deserializer
      */
     private final Deserializer<? extends T> valueDeserializer;
+
+    public MultiLocaleValueSerde() {
+        this.defaultFallback = Locale.ENGLISH;;
+        this.valueArgument = null;
+        this.valueDeserializer = null;
+    }
 
     @SuppressWarnings("unchecked")
     @Override
@@ -46,7 +53,8 @@ public class MultiLocaleValueSerde<T extends Serializable> implements Serde<Mult
         final Argument<T> collectionItemArgument = (Argument<T>) generics[0];
         Deserializer<? extends T> serialValueDeser = context.findDeserializer(collectionItemArgument)
                 .createSpecific(context, collectionItemArgument);
-        return new MultiLocaleValueSerde<>(collectionItemArgument, serialValueDeser);
+        return new MultiLocaleValueSerde<>(defaultFallback, collectionItemArgument,
+                serialValueDeser);
     }
 
     @SuppressWarnings("unchecked")
@@ -106,5 +114,11 @@ public class MultiLocaleValueSerde<T extends Serializable> implements Serde<Mult
         }
         childEncoder.finishStructure();
     }
-
+    @Override
+    public boolean isEmpty(EncoderContext context, MultiLocaleValue<T> value) {
+        if (value == null) {
+            return true;
+        }
+        return MapUtils.isEmpty(value.getValues());
+    }
 }
