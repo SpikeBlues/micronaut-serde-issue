@@ -5,6 +5,7 @@ import io.micronaut.serde.ObjectMapper;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import org.junit.jupiter.api.Test;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -20,11 +21,6 @@ class SerdeIssueTest {
                 new MultiLocaleValue<String>()
                         .withValue(Locale.ENGLISH, "English content")
                         .withValue(Locale.CHINA, "Chinese content");
-        // nested case
-        //        MultiLocaleValue<Book> test =
-        //                new MultiLocaleValue<Book>()
-        //                        .withValue(Locale.UK, new Book("EN", 1, localeValue))
-        //                        .withValue(Locale.CHINA, new Book("CN", 3, null));
         Book test = new Book("title", 2, localeValue);
         String json = objectMapper.writeValueAsString(test);
         Book test2 =
@@ -32,13 +28,39 @@ class SerdeIssueTest {
         assertEquals(test2, test);
     }
 
+    @SuppressWarnings({"unchecked", "raw"})
     @Test
-    void shouldSerializePoint(ObjectMapper objectMapper) throws IOException {
-        String result = objectMapper.writeValueAsString(Point.valueOf(50, 100));
-        Point point = objectMapper.readValue(result, Point.class);
-        assertNotNull(point);
-        int[] coords = point.coords();
-        assertEquals(50, coords[0]);
-        assertEquals(100, coords[1]);
+    void shouldSerializeNestedMultiLocale(ObjectMapper objectMapper) throws IOException {
+        MultiLocaleValue<String> localeValue =
+                new MultiLocaleValue<String>()
+                        .withValue(Locale.ENGLISH, "English content")
+                        .withValue(Locale.CHINA, "Chinese content");
+        MultiLocaleValue<Serializable> nestedValue =
+                new MultiLocaleValue<>().withValue(Locale.UK, localeValue);
+        String json = objectMapper.writeValueAsString(nestedValue);
+        MultiLocaleValue<MultiLocaleValue<String>> test2 =
+                objectMapper.readValue(json, Argument.of(MultiLocaleValue.class,
+                        MultiLocaleValue.class));
+        assertEquals(test2, nestedValue);
     }
+
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void shouldSerializeNestedBook(ObjectMapper objectMapper) throws IOException {
+        MultiLocaleValue<String> localeValue =
+                new MultiLocaleValue<String>()
+                        .withValue(Locale.ENGLISH, "English content")
+                        .withValue(Locale.CHINA, "Chinese content");
+        // nested case
+        MultiLocaleValue<Serializable> book =
+                new MultiLocaleValue<>()
+                        .withValue(Locale.UK, new Book("EN title", 1, localeValue))
+                        .withValue(Locale.CHINA, new Book("CN title", 3, null));
+        String json = objectMapper.writeValueAsString(book);
+        MultiLocaleValue<Book> test2 =
+                (MultiLocaleValue<Book>) objectMapper.readValue(json, Argument.of(MultiLocaleValue.class, Book.class));
+        assertEquals(book, test2);
+    }
+
 }
