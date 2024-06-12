@@ -8,6 +8,8 @@
         </encoder>
     </appender>
 
+    <logger name="io.micronaut.serde" level="TRACE" />
+
     <root level="info">
         <appender-ref ref="STDOUT" />
     </root>
